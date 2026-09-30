@@ -8,6 +8,9 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
+    // Explicit: a leftover bundle in dist/assets is how a stale file ends up
+    // being served or inlined.
+    emptyOutDir: true,
     chunkSizeWarningLimit: 900,
   },
 });

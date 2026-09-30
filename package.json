@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "node scripts/check-map.mjs"
+    "check": "node scripts/check-map.mjs",
+    "standalone": "npm run build && node scripts/build-standalone.mjs"
   },
   "devDependencies": {
     "vite": "^7.1.0"

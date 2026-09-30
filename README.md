@@ -28,6 +28,7 @@ npm run dev      # http://localhost:5173
 npm run build    # -> dist/, drop it on any host
 npm run preview  # serve the build locally
 npm run check    # assert no line passes through a station it does not serve
+npm run standalone  # one self-contained HTML file that opens straight from disk
 ```
 
 No framework. Plain ES modules, SVG and CSS, plus GSAP for the two animations.
@@ -73,6 +74,7 @@ be clear can end up running straight through one.
 | `src/map/layout.js` | Rows, lanes and station coordinates. The only place positions are decided. |
 | `src/map/routes.js` | Octilinear routing, the detour around unrelated stations, and the line that closes the cycle. |
 | `scripts/check-map.mjs` | Fails if any line passes through a station it does not serve. |
+| `scripts/build-standalone.mjs` | Inlines the build into one HTML file for opening without a server. |
 | `src/map/render.js` | Builds the SVG geometry and the HTML text that sits over it. |
 | `src/map/strip.js` | The narrow-screen strip view, mounted in place of the map below 880px. |
 | `src/map/animate.js` | The two animations: the map drawing itself, and the pulse on a selected tool. |
@@ -111,6 +113,11 @@ be clear can end up running straight through one.
   and solid is what "already built" means on this map.
 - **All of it is skipped under `prefers-reduced-motion`.** The map is complete
   and readable without a single tween.
+- **`dist/index.html` will not open by double-clicking it.** A browser treats
+  every `file://` URL as its own opaque origin and refuses to fetch the module
+  and stylesheet beside it, so you get CORS errors and a blank page. That is the
+  rule working, not a broken build — serve it over HTTP, or run
+  `npm run standalone` for a single self-contained file that does open from disk.
 - **The top bar's height is measured, not declared.** It wraps to a different
   number of rows depending on width, so `--bar-height` is written by a
   ResizeObserver. Hardcoding it hides the first row behind the bar.

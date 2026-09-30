@@ -2,15 +2,15 @@
  * THE REGISTRY.
  *
  * Adding a tool to MBC Hub means adding one object here - nothing else in the
- * project needs to change. The scene derives position from `stage` + `flow`,
- * the silhouette from `flow`, and the visual treatment from `status`.
+ * project needs to change. The map puts the station where its `stage` row meets
+ * its `flow` lane, and takes its treatment from `status`.
  *
- *   id          stable key, also used by src/data/flows.js edges
- *   stage       one of src/data/stages.js, or 'backbone' for cross-cutting tools
- *   flow        one of src/data/flows.js
- *   status      'live'    - solid, emissive, opens in a new tab
- *               'planned' - dim wireframe, no link, ghosted edges
- *   spineSide   'above' | 'below', only read when stage is 'backbone'
+ *   id          stable key, also used by the link list in src/data/flows.js
+ *   stage       one of src/data/stages.js, or 'backbone' for a shared service
+ *               that every step can call rather than one step owning it
+ *   flow        one of src/data/flows.js - what this tool actually moves
+ *   status      'live'    - filled station, opens in a new tab
+ *               'planned' - hollow station, dashed links, no link to open
  *   keywords    extra search terms that are not already in name/summary
  */
 export const APPS = [
@@ -76,11 +76,10 @@ export const APPS = [
     name: 'Invoice AI',
     tagline: 'Shared invoice extraction service',
     summary:
-      'Reads an invoice with OCR and returns the extracted lines. It is a service any tool can call over its API rather than a step in the cycle, so it sits on the backbone.',
+      'Reads an invoice with OCR and returns the extracted lines over its API. It holds nothing: the invoice and whatever is done with it stay in the tool that called it. A shared engine rather than a step in the cycle, so it sits on the backbone.',
     url: 'https://ocr.mbcstaging.com',
     stage: 'backbone',
-    spineSide: 'above',
-    flow: 'money',
+    flow: 'information',
     status: 'live',
     keywords: ['ocr', 'invoice', 'credit note', 'accounting', 'extraction', 'api', 'service'],
   },
@@ -109,7 +108,7 @@ export const APPS = [
     name: 'Supply Chain',
     tagline: 'Inter-region distribution',
     summary:
-      'Will plan and track stock moving between the company market regions, from finished goods to local warehouses.',
+      'Will plan and track finished product moving between the company market regions. Manufacturing happens in Australia only, so raw materials never travel - distribution starts after production.',
     url: null,
     stage: 'distribute',
     flow: 'material',
@@ -172,7 +171,6 @@ export const APPS = [
       'Records attendance and working hours for every employee, across every stage of the cycle.',
     url: 'https://timesheet.mbcstaging.com',
     stage: 'backbone',
-    spineSide: 'below',
     flow: 'people',
     status: 'live',
     keywords: ['attendance', 'hours', 'payroll', 'hr', 'clock in'],
@@ -185,7 +183,6 @@ export const APPS = [
       'Will bring revenue, cost and cash flow together, fed by every other tool that touches money.',
     url: null,
     stage: 'backbone',
-    spineSide: 'above',
     flow: 'money',
     status: 'planned',
     keywords: ['cash flow', 'ledger', 'cost', 'budget', 'p&l', 'accounting'],

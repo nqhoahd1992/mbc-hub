@@ -1,4 +1,5 @@
 node_modules
 dist
+mbc-hub-build.zip
 *.local
 .DS_Store

@@ -1,64 +1,46 @@
 import { APPS } from '../data/apps.js';
 import { FLOWS, appTouchesFlow } from '../data/flows.js';
-import { STAGES, STAGE_BY_ID } from '../data/stages.js';
+import { STAGE_BY_ID } from '../data/stages.js';
 import { getState, setState, subscribe, toggleFilter } from '../state.js';
 
 /**
- * The HUD: title, the flow legend that doubles as the filter, and the hints.
- * Every control here writes to the shared state; nothing talks to the scene.
+ * The top bar: what this is, the four lines, and the controls.
+ *
+ * The stages are deliberately not repeated here - on the map each one is a
+ * labelled row carrying its own description, so listing them again would only
+ * add a second place to keep in step.
  */
-export function createOverlay(container, { onResetView, onOpenSearch }) {
+export function createOverlay(container, { onResetView, onOpenSearch, onToggleFit }) {
   container.innerHTML = `
-    <header class="hud__brand">
+    <div class="hud__brand">
       <p class="hud__eyebrow">Max Biocare</p>
       <h1 class="hud__title">MBC Hub</h1>
       <p class="hud__subtitle">
-        The ring is one turn of the company. Each tool sits at the step it serves.
+        Rows are the steps of one company cycle. Lines are what moves between them.
       </p>
-    </header>
+    </div>
 
-    <section class="legend legend--stages" aria-label="Filter by stage">
-      <h2 class="legend__title">The cycle</h2>
-      <ol class="legend__list legend__list--stages"></ol>
-    </section>
-
-    <section class="legend" aria-label="Filter by flow">
-      <h2 class="legend__title">What moves</h2>
+    <section class="legend" aria-label="Filter by line">
+      <h2 class="legend__title">Lines</h2>
       <ul class="legend__list"></ul>
-      <button type="button" class="legend__clear" hidden>Clear filter</button>
     </section>
 
-    <footer class="hud__hints">
+    <div class="hud__controls">
       <button type="button" class="hint-button" data-action="search">
         <kbd>/</kbd> Search
       </button>
-      <button type="button" class="hint-button" data-action="reset">Reset view</button>
+      <button type="button" class="hint-button" data-action="fit" aria-pressed="false">Fit all</button>
+      <button type="button" class="hint-button" data-action="reset">Reset</button>
+      <button type="button" class="hint-button hint-button--clear" data-action="clear" hidden>
+        Clear filter
+      </button>
       <p class="hud__count"></p>
-    </footer>
+    </div>
   `;
 
-  const list = container.querySelector('.legend__list:not(.legend__list--stages)');
-  const stageList = container.querySelector('.legend__list--stages');
-  const clearButton = container.querySelector('.legend__clear');
+  const list = container.querySelector('.legend__list');
+  const clearButton = container.querySelector('[data-action="clear"]');
   const count = container.querySelector('.hud__count');
-
-  // The six stages, in order, numbered to match the ring. This is the panel that
-  // answers "what am I looking at" without needing a tooltip.
-  STAGES.forEach((stage, index) => {
-    const item = document.createElement('li');
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'stage-item';
-    button.dataset.stage = stage.id;
-    button.innerHTML = `
-      <span class="stage-item__order">${index + 1}</span>
-      <span class="stage-item__label">${stage.label}</span>
-      <span class="stage-item__description">${stage.description}</span>
-    `;
-    button.addEventListener('click', () => toggleFilter('stageFilter', stage.id));
-    item.append(button);
-    stageList.append(item);
-  });
 
   for (const flow of FLOWS) {
     const item = document.createElement('li');
@@ -66,25 +48,30 @@ export function createOverlay(container, { onResetView, onOpenSearch }) {
     button.type = 'button';
     button.className = `legend__item legend__item--${flow.id}`;
     button.dataset.flow = flow.id;
+    button.title = flow.description;
     button.innerHTML = `
       <span class="legend__swatch legend__swatch--${flow.shape}"></span>
       <span class="legend__label">${flow.label}</span>
-      <span class="legend__description">${flow.description}</span>
     `;
     button.addEventListener('click', () => toggleFilter('flowFilter', flow.id));
     item.append(button);
     list.append(item);
   }
 
-  clearButton.addEventListener('click', () =>
-    setState({ flowFilter: null, stageFilter: null }),
-  );
-
+  clearButton.addEventListener('click', () => setState({ flowFilter: null, stageFilter: null }));
   container.querySelector('[data-action="reset"]').addEventListener('click', () => {
     setState({ selected: null, flowFilter: null, stageFilter: null });
     onResetView();
   });
   container.querySelector('[data-action="search"]').addEventListener('click', onOpenSearch);
+
+  const fitButton = container.querySelector('[data-action="fit"]');
+  fitButton.addEventListener('click', () => {
+    const fitAll = onToggleFit();
+    fitButton.classList.toggle('is-active', fitAll);
+    fitButton.setAttribute('aria-pressed', String(fitAll));
+    fitButton.textContent = fitAll ? 'Actual size' : 'Fit all';
+  });
 
   function applyState() {
     const { flowFilter, stageFilter } = getState();
@@ -93,13 +80,6 @@ export function createOverlay(container, { onResetView, onOpenSearch }) {
       const active = button.dataset.flow === flowFilter;
       button.classList.toggle('is-active', active);
       button.classList.toggle('is-dim', Boolean(flowFilter) && !active);
-      button.setAttribute('aria-pressed', String(active));
-    }
-
-    for (const button of stageList.querySelectorAll('.stage-item')) {
-      const active = button.dataset.stage === stageFilter;
-      button.classList.toggle('is-active', active);
-      button.classList.toggle('is-dim', Boolean(stageFilter) && !active);
       button.setAttribute('aria-pressed', String(active));
     }
 
@@ -114,14 +94,14 @@ export function createOverlay(container, { onResetView, onOpenSearch }) {
     const planned = matching.filter((app) => app.status === 'planned').length;
 
     const scope = [
-      flowFilter && `${FLOWS.find((f) => f.id === flowFilter).label} flow`,
-      stageFilter && `${STAGE_BY_ID[stageFilter]?.label ?? stageFilter} stage`,
+      flowFilter && `${FLOWS.find((f) => f.id === flowFilter).label} line`,
+      stageFilter && `${STAGE_BY_ID[stageFilter]?.label ?? stageFilter} step`,
     ]
       .filter(Boolean)
       .join(', ');
 
     count.textContent = scope
-      ? `${matching.length} tools in ${scope}${planned ? ` (${planned} planned)` : ''}`
+      ? `${matching.length} tools on ${scope}${planned ? ` (${planned} planned)` : ''}`
       : `${APPS.length} tools, ${planned} of them still planned`;
   }
 

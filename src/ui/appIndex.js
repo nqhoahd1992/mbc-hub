@@ -3,11 +3,10 @@ import { FLOW_BY_ID } from '../data/flows.js';
 import { BACKBONE, STAGES } from '../data/stages.js';
 
 /**
- * The accessible, non-3D view of the registry.
+ * The accessible, plain-text view of the registry.
  *
- * It is always rendered (visually hidden behind the scene) so screen readers and
- * keyboard users get a plain list of links, and it doubles as the fallback view
- * when WebGL is unavailable - one list, one source of truth.
+ * Always rendered and visually hidden, so screen readers and keyboard users get
+ * a plain list of links built from the same registry the map is built from.
  */
 export function renderAppIndex(container) {
   const groups = [...STAGES.map((stage) => ({ ...stage })), { ...BACKBONE }];

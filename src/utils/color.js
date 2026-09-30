@@ -1,10 +1,8 @@
-import { Color } from 'three';
-
 /**
  * Single source of truth for the palette.
- * Every value here is published twice: as a THREE.Color for the scene and as a
- * CSS custom property for the HUD, so the 3D layer and the DOM layer can never
- * drift apart.
+ *
+ * Every value is published twice: as a hex string the map draws with, and as a
+ * CSS custom property the chrome styles with, so the two can never drift apart.
  */
 
 export const FLOW_COLORS = {
@@ -24,21 +22,6 @@ export const UI_COLORS = {
   accent: '#e8eefc',
   planned: '#5a6b91',
 };
-
-const threeColorCache = new Map();
-
-/** Returns a cached THREE.Color for a hex string. Never mutate the result. */
-export function toThreeColor(hex) {
-  if (!threeColorCache.has(hex)) {
-    threeColorCache.set(hex, new Color(hex));
-  }
-  return threeColorCache.get(hex);
-}
-
-/** Returns a fresh, safe-to-mutate THREE.Color for a hex string. */
-export function cloneThreeColor(hex) {
-  return toThreeColor(hex).clone();
-}
 
 /** Converts a hex string to `r, g, b` so CSS can build rgba() from it. */
 export function hexToRgbChannels(hex) {

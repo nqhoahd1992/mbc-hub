@@ -29,11 +29,13 @@ export const FLOWS = [
     description: 'Data: product sync, dashboards, customer feedback.',
   },
   {
+    // The id stays 'people' so no tool or link has to change; the label says
+    // what these tools actually are.
     id: 'people',
-    label: 'People',
+    label: 'Process',
     shape: 'tetrahedron',
     color: FLOW_COLORS.people,
-    description: 'Process and time: projects, workflows, working hours.',
+    description: 'Decisions and time: phase-gates, projects, approvals, working hours.',
   },
 ];
 
@@ -47,15 +49,19 @@ export const FLOW_BY_ID = Object.fromEntries(FLOWS.map((flow) => [flow.id, flow]
  */
 export const EDGES = [
   { from: 'page-review', to: 'mbc360', flow: 'information', note: 'Customer feedback feeds the next product.' },
-  { from: 'mbc360', to: 'project-app', flow: 'people', note: 'An approved product becomes a project.' },
-  { from: 'mbc360', to: 'raw-material', flow: 'material', note: 'A formula defines the raw materials to source.' },
+  { from: 'mbc360', to: 'product-app', flow: 'information', note: 'A newly developed product is raised as a change request, and gets its SKU once approved.' },
   { from: 'project-app', to: 'raw-material', flow: 'people', note: 'Every raw material request is raised against a project.' },
   { from: 'project-app', to: 'procurement', flow: 'people', note: 'Every purchase request is raised against a project.' },
+  { from: 'product-app', to: 'raw-material', flow: 'information', note: 'Every raw material purchase is raised against the SKU it is for.' },
+  { from: 'product-app', to: 'production', flow: 'information', note: 'Production records its output against a SKU from the product list.' },
+  { from: 'product-app', to: 'marketplace-misa', flow: 'information', note: 'Internal SKUs are mapped to the matching product listings on each platform.' },
+  { from: 'product-app', to: 'page-review', flow: 'information', note: 'Reviews are tied to an internal SKU through its mapping to each platform listing.' },
   { from: 'procurement', to: 'invoice-ai', flow: 'information', note: 'Sends purchase invoices to be read, and keeps the result.' },
   { from: 'raw-material', to: 'invoice-ai', flow: 'information', note: 'Sends raw material invoices to be read, and keeps the result.' },
   { from: 'raw-material', to: 'production', flow: 'material', note: 'Approved materials feed the production process.' },
   { from: 'production', to: 'supply-chain', flow: 'material', note: 'Finished goods are handed to distribution.' },
-  { from: 'supply-chain', to: 'marketplace-misa', flow: 'material', note: 'Distributed stock becomes sellable listings.' },
+  { from: 'production', to: 'misa-warehouse', flow: 'material', note: 'Every finished batch is booked into stock against its SKU.' },
+  { from: 'supply-chain', to: 'misa-warehouse', flow: 'material', note: 'Stock moving in and out of each market is recorded as goods receipts and issues.' },
   { from: 'marketplace-misa', to: 'sales-dashboard', flow: 'information', note: 'Platform orders are reported as revenue.' },
   { from: 'ads-tool', to: 'sales-dashboard', flow: 'information', note: 'Campaign spend is measured against sales.' },
   { from: 'procurement', to: 'finance', flow: 'money', note: 'Purchase invoices become payables.' },

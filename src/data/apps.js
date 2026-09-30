@@ -8,7 +8,14 @@
  *   id          stable key, also used by the link list in src/data/flows.js
  *   stage       one of src/data/stages.js, or 'backbone' for a shared service
  *               that every step can call rather than one step owning it
- *   flow        one of src/data/flows.js - what this tool actually moves
+ *   flow        one of src/data/flows.js - what this tool actually moves,
+ *               judged by what comes out the other end, not by how it gets
+ *               there. Nearly every tool has an approval step or change
+ *               control inside it; that alone does not make it 'people'.
+ *               Purchasing ends in goods received, so it is 'material'.
+ *               Production ends in finished goods, so it is 'material' too.
+ *               A tool is 'people' (shown as Process) when the approved
+ *               decision or the time worked IS the output.
  *   status      'live'    - filled station, opens in a new tab
  *               'planned' - hollow station, dashed links, no link to open
  *   keywords    extra search terms that are not already in name/summary
@@ -17,14 +24,14 @@ export const APPS = [
   {
     id: 'mbc360',
     name: 'MBc360',
-    tagline: 'Product development process',
+    tagline: 'Development & quality phase-gates',
     summary:
-      'Runs a new product from first idea to approved formula, with every review step recorded in one place.',
+      'Runs a new product through the product development and quality phase-gates, from first idea to approved formula, with every gate decision recorded in one place. A product that clears the gates is raised as a change request in the Product App, which issues its SKU once approved.',
     url: 'https://mbc360.mbcstaging.com',
     stage: 'develop',
     flow: 'people',
     status: 'live',
-    keywords: ['npd', 'formula', 'product development', 'stage gate'],
+    keywords: ['npd', 'formula', 'product development', 'stage gate', 'phase gate', 'quality', 'qa'],
   },
   {
     id: 'project-app',
@@ -37,6 +44,18 @@ export const APPS = [
     flow: 'people',
     status: 'live',
     keywords: ['change request', 'approval', 'sponsor', 'project manager'],
+  },
+  {
+    id: 'product-app',
+    name: 'Product App',
+    tagline: 'SKU list under change control',
+    summary:
+      'Will hold the list of SKUs the company has, with every change to a SKU going through change control. Raw material purchasing references the SKU it buys for, production references the SKU it makes, and the sales and review tools map each platform listing back to a SKU.',
+    url: null,
+    stage: 'develop',
+    flow: 'information',
+    status: 'planned',
+    keywords: ['sku', 'product', 'master data', 'catalogue', 'change control', 'item list'],
   },
   {
     id: 'raw-material',
@@ -91,7 +110,7 @@ export const APPS = [
       'Will define and version the manufacturing process for each product, with every change to a process going through change control. Takes over where raw material procurement stops.',
     url: null,
     stage: 'produce',
-    flow: 'people',
+    flow: 'material',
     status: 'planned',
     keywords: [
       'manufacturing',
@@ -108,7 +127,7 @@ export const APPS = [
     name: 'Supply Chain',
     tagline: 'Inter-region distribution',
     summary:
-      'Will plan and track finished product moving between the company market regions. Manufacturing happens in Australia only, so raw materials never travel - distribution starts after production.',
+      'Will plan and track finished product moving between the company market regions.',
     url: null,
     stage: 'distribute',
     flow: 'material',
@@ -116,16 +135,28 @@ export const APPS = [
     keywords: ['logistics', 'shipment', 'region', 'transfer', 'stock'],
   },
   {
+    id: 'misa-warehouse',
+    name: 'MISA Warehouse',
+    tagline: 'Stock balance by SKU, every market',
+    summary:
+      'The MISA AMIS warehouse module, holding the stock balance of every SKU across all markets. What production makes is booked into it, and every stock movement in and out of a market through Supply Chain is recorded against it.',
+    url: 'https://amisapp.misa.vn/warehouse/',
+    stage: 'distribute',
+    flow: 'material',
+    status: 'live',
+    keywords: ['misa', 'amis', 'warehouse', 'inventory', 'stock balance', 'stock', 'goods receipt', 'goods issue'],
+  },
+  {
     id: 'marketplace-misa',
-    name: 'Marketplace x Misa',
+    name: 'Marketplace x Misa CRM',
     tagline: 'Sales platform to MISA CRM sync',
     summary:
-      'Synchronises product and order data from the sales platforms into MISA CRM so both sides agree.',
+      'Fetches product and order data straight from the e-commerce platform APIs and synchronises it into MISA CRM so both sides agree. Each platform listing is mapped to an internal SKU from the Product App.',
     url: 'https://marketplace.mbcstaging.com',
     stage: 'sell',
     flow: 'information',
     status: 'live',
-    keywords: ['misa', 'crm', 'shopee', 'lazada', 'sync', 'listing'],
+    keywords: ['misa', 'crm', 'shopee', 'lazada', 'sync', 'listing', 'e-commerce', 'api', 'sku mapping'],
   },
   {
     id: 'ads-tool',
@@ -156,12 +187,12 @@ export const APPS = [
     name: 'Page Review',
     tagline: 'Marketplace review monitoring',
     summary:
-      'Collects every customer review across the sales platforms into one queue so nothing goes unanswered.',
+      'Collects every customer review across the sales platforms into one queue so nothing goes unanswered, with each platform product mapped to an internal SKU from the Product App.',
     url: 'https://reviewpage.mbcstaging.com',
     stage: 'listen',
     flow: 'information',
     status: 'live',
-    keywords: ['rating', 'feedback', 'customer', 'comment', 'reputation'],
+    keywords: ['rating', 'feedback', 'customer', 'comment', 'reputation', 'sku mapping'],
   },
   {
     id: 'timesheet',

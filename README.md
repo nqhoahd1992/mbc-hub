@@ -4,8 +4,10 @@ Every internal tool drawn as a transit map of the company's own cycle.
 
 The map has two axes. A **row** is a step of the cycle
 (`develop → source → produce → distribute → sell → listen`, then back to the
-top). A **lane** is what a tool moves: `material`, `money`, `information` or
-`people`. A tool sits where its row meets its lane, so its position states both
+top). A **lane** is what a tool moves: Material, Money, Information or Process
+(`people` in the code). A lane is decided by what comes out of the tool, not
+by whether it has an approval step inside - purchasing and production end in
+goods, so they are Material. A tool sits where its row meets its lane, so its position states both
 what it does and where in the cycle it does it.
 
 Tools that serve every step rather than sitting inside one — Invoice AI,
@@ -62,17 +64,18 @@ To connect it to another tool, add one entry to `EDGES` in
 [`src/data/flows.js`](src/data/flows.js). The `note` is shown in the detail
 panel, so write it as a sentence explaining what actually travels the link.
 
-Then run `npm run check`. Adding a tool moves stations, and a route that used to
-be clear can end up running straight through one.
+Then run `npm run check`. Routes are searched afresh every time, so adding a
+tool can reshape lines far from it; the check says whether the result is still
+honest.
 
 ## Where things live
 
 | Path | What it holds |
 | --- | --- |
 | `src/data/` | The registry, the stages, the flows and links. All content lives here. |
-| `src/map/layout.js` | Rows, lanes and station coordinates. The only place positions are decided. |
-| `src/map/routes.js` | Octilinear routing, the detour around unrelated stations, and the line that closes the cycle. |
-| `scripts/check-map.mjs` | Fails if any line passes through a station it does not serve. |
+| `src/map/layout.js` | Rows, lanes, station coordinates on the routing grid, and the estimated size of every label. The only place positions are decided. |
+| `src/map/routes.js` | The octilinear route search, and the line that closes the cycle. |
+| `scripts/check-map.mjs` | Fails if a line passes through a station it does not serve, two lines share a stretch, a forward line climbs, or a line ends too short for its arrowhead. |
 | `src/map/render.js` | Builds the SVG geometry and the HTML text that sits over it. |
 | `src/map/strip.js` | The narrow-screen strip view, mounted in place of the map below 880px. |
 | `src/map/animate.js` | The two animations: the map drawing itself, and the pulse on a selected tool. |
@@ -86,19 +89,33 @@ be clear can end up running straight through one.
 - **Geometry is SVG, text is HTML.** SVG cannot wrap text and these names are
   long, so every label is an HTML element positioned over the drawing. One
   transform on the container scales both together.
-- **Every label carries its own backdrop.** Lines run underneath them, and on a
-  transit map the name always wins over the route.
+- **Every label carries its own backdrop, and routes keep out from under it.**
+  On a transit map the name always wins over the route. Label sizes are
+  predicted from the copy in `labelBox` in `layout.js`, because routes are built
+  before the labels are laid out and the map check runs in Node; if the label
+  type changes, change the glyph widths there too.
 - **Links are octilinear.** Every segment is vertical, horizontal or exactly 45
   degrees. That constraint is what makes the map readable — the eye follows a
   line it can predict — so keep it if you touch `routes.js`.
+- **Routes are searched, not drawn.** Every station sits on a 12px grid and
+  each link is a shortest path over it (A*), with prices on bends, crossings,
+  running under a label and crowding another line. Links are laid one at a
+  time, each one becoming terrain for the next, in several orders. Then any
+  route that went well out of its way has the routes blocking it lifted and
+  laid again after it, kept only if the group comes out cheaper. The cheapest
+  whole map wins. That is why station spacing in `layout.js` is written in grid
+  steps — a station off the grid cannot be routed to.
 - **A line must never pass through a station it does not serve.** On a transit
   map that reads as calling there, so the map would be asserting a relationship
-  the data does not contain. When the direct route would do that, `routes.js`
-  detours through a *gutter* — the empty corridor between two lanes — and
+  the data does not contain. Nor may two lines print on top of each other,
+  except in the last stretch into a station they both arrive at (or out of one
+  they both leave). Both are hard rules in the search rather than prices, and
   `npm run check` fails if anything slips through.
 - **One link runs backwards.** Customer reviews re-entering product development
   is what makes the cycle a cycle, so it sweeps out to the right margin instead
-  of cutting through the map, and is drawn thinner.
+  of cutting through the map, and is drawn thinner. It leaves from below and
+  arrives from above, higher than any other route may run, so it never passes
+  under a label or lines up with another line.
 - **An empty step is information.** A step whose only tool is still planned keeps
   its "no tool yet" note. That is deliberate, not a gap to paper over.
 - **The accessible list is not a duplicate.** `src/ui/appIndex.js` renders every

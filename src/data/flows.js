@@ -1,0 +1,91 @@
+import { FLOW_COLORS } from '../utils/color.js';
+
+/**
+ * Axis 2 of the company model: what a tool actually moves.
+ *
+ * Colour is never the only carrier of meaning - every flow also owns a distinct
+ * node silhouette, so the model stays readable without colour vision.
+ */
+export const FLOWS = [
+  {
+    id: 'material',
+    label: 'Material',
+    shape: 'octahedron',
+    color: FLOW_COLORS.material,
+    description: 'Physical goods: raw materials, stock and shipments.',
+  },
+  {
+    id: 'money',
+    label: 'Money',
+    shape: 'box',
+    color: FLOW_COLORS.money,
+    description: 'Cash: cost, invoices, ad spend, revenue.',
+  },
+  {
+    id: 'information',
+    label: 'Information',
+    shape: 'icosahedron',
+    color: FLOW_COLORS.information,
+    description: 'Data: product sync, dashboards, customer feedback.',
+  },
+  {
+    id: 'people',
+    label: 'People',
+    shape: 'tetrahedron',
+    color: FLOW_COLORS.people,
+    description: 'Process and time: projects, workflows, working hours.',
+  },
+];
+
+export const FLOW_BY_ID = Object.fromEntries(FLOWS.map((flow) => [flow.id, flow]));
+
+/**
+ * Directed links between tools. `flow` says which currency travels the link, so
+ * a link is lit whenever its flow is selected in the legend.
+ * A link whose endpoint is a planned app is drawn as a dashed ghost - this is
+ * derived from the app status, not declared here.
+ */
+export const EDGES = [
+  { from: 'page-review', to: 'mbc360', flow: 'information', note: 'Customer feedback feeds the next product.' },
+  { from: 'mbc360', to: 'project-app', flow: 'people', note: 'An approved product becomes a project.' },
+  { from: 'mbc360', to: 'raw-material', flow: 'material', note: 'A formula defines the raw materials to source.' },
+  { from: 'project-app', to: 'timesheet', flow: 'people', note: 'Project work is logged as hours.' },
+  { from: 'project-app', to: 'raw-material', flow: 'people', note: 'Every raw material request is raised against a project.' },
+  { from: 'project-app', to: 'procurement', flow: 'people', note: 'Every purchase request is raised against a project.' },
+  { from: 'procurement', to: 'invoice-ai', flow: 'money', note: 'Purchase invoices are captured and extracted.' },
+  { from: 'raw-material', to: 'invoice-ai', flow: 'money', note: 'Raw material invoices are captured and extracted.' },
+  { from: 'raw-material', to: 'production', flow: 'material', note: 'Approved materials feed the production process.' },
+  { from: 'production', to: 'supply-chain', flow: 'material', note: 'Finished goods are handed to distribution.' },
+  { from: 'procurement', to: 'supply-chain', flow: 'material', note: 'Received stock is handed to distribution.' },
+  { from: 'supply-chain', to: 'marketplace-misa', flow: 'material', note: 'Distributed stock becomes sellable listings.' },
+  { from: 'marketplace-misa', to: 'sales-dashboard', flow: 'information', note: 'Platform orders are reported as revenue.' },
+  { from: 'ads-tool', to: 'sales-dashboard', flow: 'information', note: 'Campaign spend is measured against sales.' },
+  { from: 'ads-tool', to: 'finance', flow: 'money', note: 'Advertising cost lands in the cost ledger.' },
+  { from: 'sales-dashboard', to: 'finance', flow: 'money', note: 'Revenue rolls up into cash flow.' },
+  { from: 'invoice-ai', to: 'finance', flow: 'money', note: 'Extracted invoices post as payables.' },
+  { from: 'timesheet', to: 'finance', flow: 'money', note: 'Logged hours become labour cost.' },
+  { from: 'marketplace-misa', to: 'page-review', flow: 'information', note: 'Listings are watched for new reviews.' },
+];
+
+/**
+ * Which flows each tool takes part in: its own, plus every flow it sends or
+ * receives. Filtering by "Money" should light the Sales Dashboard even though
+ * the dashboard is an Information tool - it is where revenue comes from.
+ */
+export const FLOWS_BY_APP = (() => {
+  const map = new Map();
+  const add = (appId, flowId) => {
+    if (!map.has(appId)) map.set(appId, new Set());
+    map.get(appId).add(flowId);
+  };
+  for (const edge of EDGES) {
+    add(edge.from, edge.flow);
+    add(edge.to, edge.flow);
+  }
+  return map;
+})();
+
+/** True when the tool moves this flow itself or is an endpoint of one. */
+export function appTouchesFlow(app, flowId) {
+  return app.flow === flowId || (FLOWS_BY_APP.get(app.id)?.has(flowId) ?? false);
+}

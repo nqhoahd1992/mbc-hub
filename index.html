@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#05070d" />
+    <meta
+      name="description"
+      content="MBC Hub - one entry point to every internal tool, arranged as the company's own value cycle."
+    />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <title>MBC Hub</title>
+  </head>
+  <body>
+    <canvas id="scene" aria-hidden="true"></canvas>
+    <div id="labels" class="label-layer" aria-hidden="true"></div>
+
+    <div id="hud" class="hud"></div>
+    <aside id="detail-panel" class="detail-panel" aria-live="polite" hidden></aside>
+    <div id="search" class="search" hidden></div>
+    <div id="tooltip" class="tooltip" role="status" aria-live="off" hidden></div>
+
+    <!--
+      The accessible index. Built from src/data/apps.js at boot so the registry
+      stays the single source of truth, and used unchanged as the no-WebGL view.
+    -->
+    <main id="app-index" class="app-index" aria-label="Internal tools"></main>
+
+    <noscript>
+      <p class="noscript">
+        MBC Hub needs JavaScript. The internal tools are reachable directly at
+        their own <code>*.mbcstaging.com</code> addresses.
+      </p>
+    </noscript>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

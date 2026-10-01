@@ -4,7 +4,11 @@ import { STAGE_BY_ID } from '../data/stages.js';
 import { getState, setState, subscribe, toggleFilter } from '../state.js';
 
 /**
- * The top bar: what this is, the four lines, and the controls.
+ * The top bar: what this is, the four line filters, and the controls.
+ *
+ * The filters are titled as filters on purpose. The map's lane headers use the
+ * same swatches, but they label where a tool sits; these pick which lines light
+ * up, and a line's colour is what travels it, not the lane it starts in.
  *
  * The stages are deliberately not repeated here - on the map each one is a
  * labelled row carrying its own description, so listing them again would only
@@ -21,7 +25,7 @@ export function createOverlay(container, { onResetView, onOpenSearch, onToggleFi
     </div>
 
     <section class="legend" aria-label="Filter by line">
-      <h2 class="legend__title">Lines</h2>
+      <h2 class="legend__title">Filter by line</h2>
       <ul class="legend__list"></ul>
     </section>
 

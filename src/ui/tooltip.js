@@ -1,6 +1,6 @@
 import { APP_BY_ID } from '../data/apps.js';
 import { FLOW_BY_ID } from '../data/flows.js';
-import { BACKBONE, STAGE_BY_ID } from '../data/stages.js';
+import { rowLabel } from '../data/stages.js';
 import { getState, subscribe } from '../state.js';
 
 /** A one-line read-out that follows the pointer while a tool is hovered. */
@@ -28,7 +28,7 @@ export function createTooltip(element, tracked) {
       return;
     }
 
-    const stage = app.stage === 'backbone' ? BACKBONE.label : STAGE_BY_ID[app.stage]?.label;
+    const stage = rowLabel(app.stage);
     element.innerHTML = `
       <strong>${app.name}</strong>
       <span>${app.tagline}</span>

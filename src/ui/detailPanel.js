@@ -1,10 +1,11 @@
-import { APP_BY_ID } from '../data/apps.js';
+import { APP_BY_ID, badgesFor } from '../data/apps.js';
 import { EDGES, FLOW_BY_ID } from '../data/flows.js';
-import { BACKBONE, STAGE_BY_ID } from '../data/stages.js';
+import { masterRoleFor } from '../data/masters.js';
+import { rowLabel } from '../data/stages.js';
 import { getState, setState, subscribe } from '../state.js';
 
 function stageLabel(app) {
-  return app.stage === 'backbone' ? BACKBONE.label : (STAGE_BY_ID[app.stage]?.label ?? app.stage);
+  return rowLabel(app.stage);
 }
 
 function relatedList(appId, direction) {
@@ -33,6 +34,23 @@ export function createDetailPanel(panel) {
     return `<section class="detail__relations"><h3>${title}</h3><ul>${items}</ul></section>`;
   }
 
+  /** What this tool owns, or holds a copy of - the third axis of the model. */
+  function renderMasters(app) {
+    const found = masterRoleFor(app.id);
+    if (!found) return '';
+    const title = found.role === 'owner' ? 'Source of truth for' : 'Holds a copy of';
+    const items = found.records
+      .map(
+        (record) => `
+          <li>
+            <span class="relation__name">${record.label}</span>
+            <span class="relation__note">${record.note}</span>
+          </li>`,
+      )
+      .join('');
+    return `<section class="detail__relations detail__relations--master"><h3>${title}</h3><ul>${items}</ul></section>`;
+  }
+
   function render(app) {
     const flow = FLOW_BY_ID[app.flow];
     const isPlanned = app.status === 'planned';
@@ -44,6 +62,11 @@ export function createDetailPanel(panel) {
       <p class="detail__tagline">${app.tagline}</p>
       <p class="detail__summary">${app.summary}</p>
       ${
+        app.origin === 'external'
+          ? '<p class="detail__origin">An external app: another company\'s product. The work runs through it like any other step, but what it does is not ours to change.</p>'
+          : ''
+      }
+      ${
         isPlanned
           ? '<p class="detail__planned">Not built yet. Its place in the model is already reserved, and the dashed links show what it will connect to.</p>'
           : `<a class="detail__open" href="${app.url}" target="_blank" rel="noopener noreferrer">
@@ -52,6 +75,7 @@ export function createDetailPanel(panel) {
              </a>
              <p class="detail__url">${app.url.replace('https://', '')}</p>`
       }
+      ${renderMasters(app)}
       ${renderRelations('Receives from', relatedList(app.id, 'in'))}
       ${renderRelations('Sends to', relatedList(app.id, 'out'))}
     `;

@@ -63,9 +63,9 @@ for (const link of links) {
     );
   }
 
-  // A forward link only ever moves down the page. A leg that climbs back up
-  // folds the line over itself into a kink.
-  if (!link.isReturn) {
+  // A link that does not run against the cycle only ever moves down the page.
+  // A leg that climbs back up folds the line over itself into a kink.
+  if (!link.climbs) {
     const stepY = Math.sign(link.end.y - link.points[0].y);
     for (let i = 0; i < link.points.length - 1; i += 1) {
       if (stepY * (link.points[i + 1].y - link.points[i].y) < 0) {

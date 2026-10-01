@@ -1,5 +1,6 @@
 import { APPS } from '../data/apps.js';
 import { FLOWS, appTouchesFlow } from '../data/flows.js';
+import { MASTERS } from '../data/masters.js';
 import { STAGE_BY_ID } from '../data/stages.js';
 import { getState, setState, subscribe, toggleFilter } from '../state.js';
 
@@ -33,6 +34,15 @@ export function createOverlay(container, { onResetView, onOpenSearch, onToggleFi
       <button type="button" class="hint-button" data-action="search">
         <kbd>/</kbd> Search
       </button>
+      <button
+        type="button"
+        class="hint-button"
+        data-action="master"
+        aria-pressed="false"
+        title="Show which tool each master record is created and changed in"
+      >
+        Master data
+      </button>
       <button type="button" class="hint-button" data-action="fit" aria-pressed="false">Fit all</button>
       <button type="button" class="hint-button" data-action="reset">Reset</button>
       <button type="button" class="hint-button hint-button--clear" data-action="clear" hidden>
@@ -62,11 +72,18 @@ export function createOverlay(container, { onResetView, onOpenSearch, onToggleFi
     list.append(item);
   }
 
-  clearButton.addEventListener('click', () => setState({ flowFilter: null, stageFilter: null }));
+  clearButton.addEventListener('click', () =>
+    setState({ flowFilter: null, stageFilter: null, masterMode: false }),
+  );
   container.querySelector('[data-action="reset"]').addEventListener('click', () => {
-    setState({ selected: null, flowFilter: null, stageFilter: null });
+    setState({ selected: null, flowFilter: null, stageFilter: null, masterMode: false });
     onResetView();
   });
+
+  const masterButton = container.querySelector('[data-action="master"]');
+  masterButton.addEventListener('click', () =>
+    setState({ masterMode: !getState().masterMode, selected: null }),
+  );
   container.querySelector('[data-action="search"]').addEventListener('click', onOpenSearch);
 
   const fitButton = container.querySelector('[data-action="fit"]');
@@ -78,7 +95,10 @@ export function createOverlay(container, { onResetView, onOpenSearch, onToggleFi
   });
 
   function applyState() {
-    const { flowFilter, stageFilter } = getState();
+    const { flowFilter, stageFilter, masterMode } = getState();
+
+    masterButton.classList.toggle('is-active', masterMode);
+    masterButton.setAttribute('aria-pressed', String(masterMode));
 
     for (const button of list.querySelectorAll('.legend__item')) {
       const active = button.dataset.flow === flowFilter;
@@ -87,7 +107,7 @@ export function createOverlay(container, { onResetView, onOpenSearch, onToggleFi
       button.setAttribute('aria-pressed', String(active));
     }
 
-    const hasFilter = Boolean(flowFilter || stageFilter);
+    const hasFilter = Boolean(flowFilter || stageFilter || masterMode);
     clearButton.hidden = !hasFilter;
 
     const matching = APPS.filter(
@@ -103,6 +123,12 @@ export function createOverlay(container, { onResetView, onOpenSearch, onToggleFi
     ]
       .filter(Boolean)
       .join(', ');
+
+    if (masterMode) {
+      const owners = new Set(MASTERS.map((record) => record.owner)).size;
+      count.textContent = `${MASTERS.length} master records, owned by ${owners} tools`;
+      return;
+    }
 
     count.textContent = scope
       ? `${matching.length} tools on ${scope}${planned ? ` (${planned} planned)` : ''}`

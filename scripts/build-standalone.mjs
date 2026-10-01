@@ -35,16 +35,30 @@ const favicon = await readFile(join(dist, 'favicon.svg'), 'utf8');
 // A literal closing script tag inside the code would end the inline block early.
 const safeJs = js.replaceAll('</script', '<\\/script');
 
+/**
+ * Every file folded in here goes in through a replacer FUNCTION, never as a
+ * replacement string.
+ *
+ * A replacement string is scanned for $&, $1, $` and $', and minified code is
+ * full of them: one `!==$&&` in the bundle is enough to paste the matched tag
+ * into the middle of an expression. The build still reports success, the file
+ * is still the right size, and the only symptom is a blank page. A function is
+ * handed back verbatim.
+ */
+const verbatim = (text) => () => text;
+
 html = html.replace(/\s*<script type="module"[^>]*src="[^"]*"><\/script>/, '');
 html = html.replace(
   /\s*<link rel="stylesheet"[^>]*href="[^"]*">/,
-  `\n    <style>\n${css}\n    </style>`,
+  verbatim(`\n    <style>\n${css}\n    </style>`),
 );
 html = html.replace(
   /<link rel="icon"[^>]*>/,
-  `<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,${Buffer.from(
-    favicon,
-  ).toString('base64')}" />`,
+  verbatim(
+    `<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,${Buffer.from(
+      favicon,
+    ).toString('base64')}" />`,
+  ),
 );
 // The whole point is that nothing is fetched. Check before the code goes in:
 // the bundle is full of strings that look like markup, and scanning those would
@@ -57,7 +71,17 @@ if (leftovers.length > 0) {
   throw new Error(`standalone file still references external resources: ${leftovers.join(', ')}`);
 }
 
-html = html.replace('</body>', `  <script type="module">\n${safeJs}\n  </script>\n  </body>`);
+html = html.replace(
+  '</body>',
+  verbatim(`  <script type="module">\n${safeJs}\n  </script>\n  </body>`),
+);
+
+// A bundle that arrived altered looks perfectly healthy from the outside -
+// right tags, near enough the right size - and the only symptom is a blank
+// page. Cheaper to assert it went in whole than to find that out by opening it.
+if (!html.includes(safeJs)) {
+  throw new Error('the bundle was altered on its way into the page - see verbatim() above');
+}
 
 await writeFile(out, html);
 

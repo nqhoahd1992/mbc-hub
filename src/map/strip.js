@@ -1,8 +1,8 @@
-import { APPS } from '../data/apps.js';
+import { APPS, badgesFor } from '../data/apps.js';
+import { masterLineFor } from '../data/masters.js';
 import { FLOW_BY_ID } from '../data/flows.js';
-import { STAGES } from '../data/stages.js';
+import { BANDS, STAGES } from '../data/stages.js';
 import { emphasisForApp, getState, setState, subscribe, toggleFilter } from '../state.js';
-import { BACKBONE_ROW } from './layout.js';
 
 /**
  * The narrow-screen view: a strip map, the diagram transit systems print inside
@@ -21,8 +21,8 @@ export function createStrip(container) {
   strip.className = 'strip';
 
   const sections = [
-    ...STAGES.map((stage, index) => ({ ...stage, order: index + 1, isBackbone: false })),
-    { ...BACKBONE_ROW, order: null, isBackbone: true },
+    ...STAGES.map((stage, index) => ({ ...stage, order: index + 1, isOffCycle: false })),
+    ...BANDS.map((band) => ({ ...band, order: null, isOffCycle: true })),
   ];
 
   const stationEls = new Map();
@@ -32,12 +32,12 @@ export function createStrip(container) {
     const apps = APPS.filter((app) => app.stage === definition.id);
 
     const section = document.createElement('section');
-    section.className = `strip__section${definition.isBackbone ? ' strip__section--backbone' : ''}`;
+    section.className = `strip__section${definition.isOffCycle ? ' strip__section--off-cycle' : ''}`;
 
     const header = document.createElement('div');
     header.className = 'strip__header';
 
-    if (definition.isBackbone) {
+    if (definition.isOffCycle) {
       header.innerHTML = `
         <span class="strip__header-name">${definition.label}</span>
         <span class="strip__header-description">${definition.description}</span>
@@ -70,19 +70,23 @@ export function createStrip(container) {
     for (const app of apps) {
       const flow = FLOW_BY_ID[app.flow];
       const isPlanned = app.status === 'planned';
+      const masterLine = masterLineFor(app.id);
 
       const item = document.createElement('li');
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `strip__station strip__station--${app.flow}${
         isPlanned ? ' strip__station--planned' : ''
-      }`;
+      }${masterLine ? ' strip__station--master' : ''}`;
       button.dataset.appId = app.id;
       button.innerHTML = `
         <span class="strip__dot"></span>
         <span class="strip__name">${app.name}</span>
-        ${isPlanned ? '<span class="strip__badge">planned</span>' : ''}
+        ${badgesFor(app)
+          .map((badge) => `<span class="strip__badge strip__badge--${badge}">${badge}</span>`)
+          .join('')}
         <span class="strip__tagline">${app.tagline}</span>
+        ${masterLine ? `<span class="strip__master">${masterLine}</span>` : ''}
         <span class="strip__flow">${flow.label}</span>
       `;
       button.addEventListener('click', () => setState({ selected: app.id }));
@@ -121,7 +125,7 @@ export function createStrip(container) {
       section.classList.toggle('is-active', active);
       section.classList.toggle(
         'is-dim',
-        Boolean(stageFilter) && !active && !definition.isBackbone,
+        Boolean(stageFilter) && !active && !definition.isOffCycle,
       );
       section
         .querySelector('.strip__header-button')

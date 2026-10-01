@@ -1,6 +1,6 @@
-import { APPS } from '../data/apps.js';
+import { APPS, badgesFor } from '../data/apps.js';
 import { FLOW_BY_ID } from '../data/flows.js';
-import { BACKBONE, STAGE_BY_ID } from '../data/stages.js';
+import { rowLabel } from '../data/stages.js';
 import { setState } from '../state.js';
 
 /** Scores a tool against a query. Name matches beat tagline, summary and keywords. */
@@ -56,8 +56,7 @@ export function createSearch(panel, { onSelect }) {
   function renderResults() {
     results.innerHTML = matches
       .map((app, index) => {
-        const stage =
-          app.stage === 'backbone' ? BACKBONE.label : (STAGE_BY_ID[app.stage]?.label ?? app.stage);
+        const stage = rowLabel(app.stage);
         return `
           <li
             role="option"
@@ -67,9 +66,11 @@ export function createSearch(panel, { onSelect }) {
             data-index="${index}"
           >
             <span class="search__result-name">${app.name}</span>
-            <span class="search__result-meta">${stage} &middot; ${FLOW_BY_ID[app.flow].label}${
-              app.status === 'planned' ? ' &middot; planned' : ''
-            }</span>
+            <span class="search__result-meta">${stage} &middot; ${FLOW_BY_ID[app.flow].label}${badgesFor(
+              app,
+            )
+              .map((badge) => ` &middot; ${badge}`)
+              .join('')}</span>
             <span class="search__result-tagline">${app.tagline}</span>
           </li>`;
       })

@@ -10,8 +10,13 @@ by whether it has an approval step inside - purchasing and production end in
 goods, so they are Material. A tool sits where its row meets its lane, so its position states both
 what it does and where in the cycle it does it.
 
-Tools that serve every step rather than sitting inside one — Invoice AI,
-Timesheet, Finance — live in the **Backbone** band at the bottom.
+Two bands sit under the ring, for tools that are not a step of the cycle.
+**Company Systems** is run for the whole company rather than for one step —
+Timesheet, Finance. **Shared Tools**, at the very bottom, is a tool another tool
+calls to do one job — Invoice AI reads an invoice for whoever asks, and no line
+reaches it, because a call like that is a question, not work moving on. Each
+band says what its tools are, not how much they matter; the map does not rank
+its tools.
 
 Because a new tool only makes its row taller, the map gets longer rather than
 denser: at 30 tools every name is still readable and nothing overlaps.
@@ -50,16 +55,20 @@ list and the tool count all come from that entry.
   tagline: 'Batch testing and release',
   summary: 'One or two sentences, shown in the detail panel.',
   url: 'https://qa.mbcstaging.com',   // null for a tool that does not exist yet
-  stage: 'produce',             // a stage id, or 'backbone' for a shared service
+  stage: 'produce',             // a stage id, or a band id: 'shared' | 'company'
   flow: 'information',
   status: 'live',               // 'live' | 'planned'
+  origin: 'external',           // omit it for a tool we write ourselves
   keywords: ['qc', 'batch'],    // extra search terms
 }
 ```
 
 A `planned` tool renders as a hollow station with dashed lines and no open
 button — which is how Production, Supply Chain and Finance are already on the
-map.
+map. A tool marked `origin: 'external'` carries a second badge: MISA CRM,
+MISA Warehouse and Cosmetri are other companies' products the work runs
+through, and the badge answers "can we change this ourselves?" — not how much
+the tool matters, and not whether it belongs to the cycle, because it does.
 
 To connect it to another tool, add one entry to `EDGES` in
 [`src/data/flows.js`](src/data/flows.js). The `note` is shown in the detail
@@ -69,11 +78,33 @@ Then run `npm run check`. Routes are searched afresh every time, so adding a
 tool can reshape lines far from it; the check says whether the result is still
 honest.
 
+## Master data: the third axis
+
+A row says where in the cycle a tool sits; a lane says what it moves. Neither
+answers the question every integration turns on: when two tools both show the
+same raw material, which one is allowed to change it?
+
+[`src/data/masters.js`](src/data/masters.js) answers it. Each record has exactly
+one `owner` — the tool it is created, changed and withdrawn in — and any number
+of `copies`, fed from the owner and never the other way round. A copy that can
+be edited is not a copy, it is a second owner, and two owners is how one
+material ends up with two names.
+
+The **Master data** button in the top bar turns the map into that view: the
+tools that own or copy a record stay lit, every other tool dims, each label
+swaps its tagline for what it owns, and the only line left drawn is a record
+reaching its copy — today, Raw Material Procurement App feeding Cosmetri.
+
+Labels are measured for the taller of their two bottom lines in **both** modes,
+so toggling the view never moves a station. A record nobody owns yet is left
+out rather than guessed at: this list is what somebody will trust when they
+wire two tools together.
+
 ## Where things live
 
 | Path | What it holds |
 | --- | --- |
-| `src/data/` | The registry, the stages, the flows and links. All content lives here. |
+| `src/data/` | The registry, the stages, the flows and links, and the master records. All content lives here. |
 | `src/map/layout.js` | Rows, lanes, station coordinates on the routing grid, and the estimated size of every label. The only place positions are decided. |
 | `src/map/routes.js` | The octilinear route search, and the line that closes the cycle. |
 | `scripts/check-map.mjs` | Fails if a line passes through a station it does not serve, two lines share a stretch, a forward line climbs, or a line ends too short for its arrowhead. |
@@ -112,18 +143,26 @@ honest.
   except in the last stretch into a station they both arrive at (or out of one
   they both leave). Both are hard rules in the search rather than prices, and
   `npm run check` fails if anything slips through.
-- **One link runs backwards.** Customer reviews re-entering product development
-  is what makes the cycle a cycle, so it sweeps out to the right margin instead
-  of cutting through the map, and is drawn thinner. It leaves from below and
-  arrives from above, higher than any other route may run, so it never passes
-  under a label or lines up with another line.
+- **Some links run backwards, and there are two kinds.** A short climb — up
+  inside one step, as Cosmetri feeding MBc360, or back into the step just
+  before, as an order in MISA CRM raising the goods issue that draws stock down
+  in MISA Warehouse — is searched and drawn like any other line; only its arrow
+  points up the page. A link reaching further back
+  would have to cut up through the whole map, so it sweeps out to the right
+  margin instead and is drawn thinner: customer reviews re-entering product
+  development, the link that makes the cycle a cycle. The swept line leaves from
+  below and arrives from above, higher than any other route may run, so it never
+  passes under a label or lines up with another line.
 - **An empty step is information.** A step whose only tool is still planned keeps
   its "no tool yet" note. That is deliberate, not a gap to paper over.
 - **The accessible list is not a duplicate.** `src/ui/appIndex.js` renders every
   tool as real links, visually hidden, built from the same registry.
 - **Only two things animate**, and both say something: the map draws itself in
   cycle order on load, and a selected tool sends a pulse down each link it
-  touches. Planned links never pulse, because nothing flows through them yet.
+  touches. A link to a planned tool pulses dimmer and slower than a live one —
+  what will flow once it is built, next to what flows today. It still pulses,
+  because every link a planned tool has is one of these, and a tool you select
+  that moves nothing at all reads as broken rather than as "not yet".
 - **The draw animation borrows `stroke-dasharray`** and must hand it back when
   it finishes, or the inline value it needs leaves planned links looking solid —
   and solid is what "already built" means on this map.

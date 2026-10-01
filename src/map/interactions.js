@@ -35,7 +35,7 @@ export function wireInteractions({ viewport, stage, map, prefersReducedMotion })
 
     for (const { row, band, header } of rowEls.values()) {
       const active = stageFilter === row.id;
-      const dim = Boolean(stageFilter) && !active && !row.isBackbone;
+      const dim = Boolean(stageFilter) && !active && !row.isOffCycle;
       band.classList.toggle('is-active', active);
       header.classList.toggle('is-active', active);
       header.classList.toggle('is-dim', dim);

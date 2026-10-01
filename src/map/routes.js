@@ -613,14 +613,34 @@ function returnLaneX() {
 }
 
 /**
- * Backward link: a tool feeding an earlier step. There is exactly one of these
- * in the model today - customer reviews re-entering product development - and
- * it is the link that makes the cycle a cycle, so it sweeps out to the right
- * margin where it can be seen closing the loop rather than cutting through.
+ * A link climbs when the tool it reaches sits above the tool it leaves: it
+ * runs against the cycle. There are two kinds and they are drawn differently,
+ * because they are not the same thing.
  *
- * It drops below the station it leaves and comes down onto the one it reaches,
- * because running level out of a station or into one would take it under that
- * station's label.
+ * A short climb is searched like any other link: up its own step, where one
+ * tool in a cell feeds another above it in the same cell, or back into the step
+ * immediately before, as an order in Sell raising the goods issue in Distribute.
+ * A climb that reaches further back would have to cut up through the whole map,
+ * so it sweeps out to the right margin instead, where it can be seen closing
+ * the loop. Customer reviews re-entering product development is the one doing
+ * that today, and it is what makes the cycle a cycle.
+ */
+function climbs(from, to) {
+  return to.y < from.y;
+}
+
+/** True when a climb reaches back further than the step just before it. */
+function sweeps(from, to) {
+  if (from.row === to.row) return false;
+  const a = from.row.order;
+  const b = to.row.order;
+  return !(Number.isInteger(a) && Number.isInteger(b) && a - b === 1);
+}
+
+/**
+ * The swept route. It drops below the station it leaves and comes down onto
+ * the one it reaches, because running level out of a station or into one would
+ * take it under that station's label.
  */
 function returnPoints(from, to) {
   const x = returnLaneX();
@@ -676,25 +696,25 @@ function layLinks(stations, grid, order, ideals) {
   const claims = createClaims(grid, stations);
   const laid = new Map();
 
-  // The return line is fixed, so it goes down first and everything else
-  // treats it as terrain.
+  // A swept route is fixed, so it goes down first and everything else treats
+  // it as terrain.
   for (const edge of EDGES) {
     const from = stations.get(edge.from);
     const to = stations.get(edge.to);
-    if (!from || !to || to.y >= from.y) continue;
+    if (!from || !to || !climbs(from, to) || !sweeps(from, to)) continue;
     const points = returnPoints(from, to);
     claims.claim(nodesAlong(grid, points), [edge.from, edge.to]);
-    laid.set(edge, { points, isReturn: true, cost: 0 });
+    laid.set(edge, { points, isReturn: true, climbs: true, cost: 0 });
   }
 
   const lay = (edge) => {
     const found = searchRoute(grid, claims, stations, edge);
     const owner = found ? claims.claim(found.nodes, [edge.from, edge.to], edge) : null;
     laid.set(edge, {
+      climbs: climbs(stations.get(edge.from), stations.get(edge.to)),
       // No legal route at all is a layout problem, not something to hide: draw
       // it straight so the map check reports exactly what it runs through.
       points: found ? corners(found.nodes.map(grid.point)) : [stations.get(edge.from), stations.get(edge.to)],
-      isReturn: false,
       unrouted: !found,
       cost: found ? found.cost : UNROUTED_PRICE,
       owner,
@@ -783,12 +803,15 @@ export function buildLinks(stations) {
     .reduce((best, attempt) => (attempt.total < best.total ? attempt : best));
 
   return EDGES.filter((edge) => laid.has(edge)).map((edge) => {
-    const { points, isReturn, unrouted } = laid.get(edge);
+    const { points, isReturn, climbs: runsBackwards, unrouted } = laid.get(edge);
     return {
       ...edge,
       points,
       path: roundedPath(points),
-      isReturn,
+      // Only the swept line is drawn as the cycle closing; a short climb is an
+      // ordinary line whose arrow happens to point up the page.
+      isReturn: Boolean(isReturn),
+      climbs: Boolean(runsBackwards),
       unrouted: Boolean(unrouted),
       ghost:
         APP_BY_ID[edge.from]?.status === 'planned' ||

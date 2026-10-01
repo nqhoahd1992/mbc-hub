@@ -17,6 +17,12 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
  * complete and readable without a single tween.
  */
 
+/** How a dot travels a live link, and how it travels one that is only planned. */
+const PULSE = [
+  [false, { duration: 1.5, strength: 1 }],
+  [true, { duration: 2.6, strength: 0.45 }],
+];
+
 /** Orders links by the step they leave from, so the map fills in cycle order. */
 function orderOf(rows, stations, link) {
   const station = stations.get(link.from);
@@ -27,12 +33,11 @@ function orderOf(rows, stations, link) {
 export function createMapAnimation({ map, rows, stations, prefersReducedMotion }) {
   const context = gsap.context(() => {});
   const timeline = gsap.timeline();
-  let pulseTween = null;
+  const pulseTweens = [];
   const pulses = [];
 
   function clearPulses() {
-    pulseTween?.kill();
-    pulseTween = null;
+    for (const tween of pulseTweens.splice(0)) tween.kill();
     for (const dot of pulses.splice(0)) dot.remove();
   }
 
@@ -108,21 +113,8 @@ export function createMapAnimation({ map, rows, stations, prefersReducedMotion }
     });
   }
 
-  /**
-   * Sends a dot down every link touching the selected tool, in the direction the
-   * work actually travels. Planned links stay still, because nothing flows yet.
-   */
-  function pulseFor(appId) {
-    clearPulses();
-    if (prefersReducedMotion || !appId) return;
-
-    const entries = [...map.linkEls.values()].filter(
-      (entry) =>
-        !entry.link.ghost && (entry.link.from === appId || entry.link.to === appId),
-    );
-    if (entries.length === 0) return;
-
-    const layer = map.canvas.querySelector('.map__lines');
+  /** Sends one dot down each of these links, in the direction the work travels. */
+  function sendDots(layer, entries, { duration, strength }) {
     const travellers = entries.map((entry) => {
       const dot = document.createElementNS(SVG_NS, 'circle');
       dot.setAttribute('class', 'map__pulse');
@@ -134,9 +126,9 @@ export function createMapAnimation({ map, rows, stations, prefersReducedMotion }
     });
 
     const progress = { value: 0 };
-    pulseTween = gsap.to(progress, {
+    return gsap.to(progress, {
       value: 1,
-      duration: 1.5,
+      duration,
       repeat: -1,
       repeatDelay: 0.25,
       ease: 'power1.inOut',
@@ -148,10 +140,36 @@ export function createMapAnimation({ map, rows, stations, prefersReducedMotion }
           // Fade in and out at the ends so the dot is absorbed by the stations
           // rather than blinking out mid-air.
           const edge = Math.min(progress.value, 1 - progress.value);
-          traveller.dot.setAttribute('opacity', String(Math.min(1, edge / 0.12)));
+          traveller.dot.setAttribute('opacity', String(strength * Math.min(1, edge / 0.12)));
         }
       },
     });
+  }
+
+  /**
+   * Sends a dot down every link touching the selected tool, in the direction the
+   * work actually travels.
+   *
+   * A link to a tool that does not exist yet gets a dot too, but a dim one that
+   * travels slower: selecting a planned tool and seeing nothing move at all
+   * reads as broken rather than as "not yet", and every link a planned tool has
+   * is one of these. Dim and slow says what WILL flow once it is built, next to
+   * the full-strength dots of what flows today.
+   */
+  function pulseFor(appId) {
+    clearPulses();
+    if (prefersReducedMotion || !appId) return;
+
+    const entries = [...map.linkEls.values()].filter(
+      (entry) => entry.link.from === appId || entry.link.to === appId,
+    );
+    if (entries.length === 0) return;
+
+    const layer = map.canvas.querySelector('.map__lines');
+    for (const [ghost, pace] of PULSE) {
+      const group = entries.filter((entry) => Boolean(entry.link.ghost) === ghost);
+      if (group.length > 0) pulseTweens.push(sendDots(layer, group, pace));
+    }
   }
 
   return {

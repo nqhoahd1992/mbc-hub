@@ -1,6 +1,7 @@
-import { APPS } from '../data/apps.js';
+import { APPS, badgesFor } from '../data/apps.js';
+import { masterLineFor } from '../data/masters.js';
 import { EDGES, FLOWS } from '../data/flows.js';
-import { STAGES } from '../data/stages.js';
+import { BANDS, STAGES } from '../data/stages.js';
 
 /**
  * Turns the registry into metro-map coordinates.
@@ -27,19 +28,13 @@ export const METRIC = {
   laneWidth: 23 * GRID,
   slotHeight: 5 * GRID,
   rowPadding: 2.5 * GRID, // half a slot, so a station lands on the grid
-  backboneGap: 5 * GRID,
+  bandGap: 5 * GRID,
   stationRadius: 9,
   labelOffset: 18,
   labelWidth: 208,
   marginTop: 9 * GRID,
   marginBottom: 72,
   returnLaneGap: 92, // how far right the cycle-closing line sweeps
-};
-
-const BACKBONE_ROW = {
-  id: 'backbone',
-  label: 'Backbone',
-  description: 'Serves every step of the cycle rather than sitting inside one.',
 };
 
 export function laneFor(flowId) {
@@ -75,14 +70,14 @@ function stackCell(apps) {
   return offsets;
 }
 
-/** Every row in top-to-bottom order: the six stages, then the backbone band. */
+/** Every row in top-to-bottom order: the six stages, then the bands under them. */
 export function buildRows() {
   const rows = [];
   let y = METRIC.marginTop;
 
   const definitions = [
-    ...STAGES.map((stage, index) => ({ ...stage, order: index + 1, isBackbone: false })),
-    { ...BACKBONE_ROW, order: null, isBackbone: true },
+    ...STAGES.map((stage, index) => ({ ...stage, order: index + 1, isOffCycle: false })),
+    ...BANDS.map((band) => ({ ...band, order: null, isOffCycle: true })),
   ];
 
   for (const definition of definitions) {
@@ -96,7 +91,7 @@ export function buildRows() {
     }
     const height = extent + METRIC.rowPadding * 2;
 
-    if (definition.isBackbone) y += METRIC.backboneGap;
+    if (definition.isOffCycle) y += METRIC.bandGap;
 
     rows.push({
       ...definition,
@@ -174,11 +169,19 @@ const BADGE_LINE = 14;
 function labelHeight(app) {
   const content = METRIC.labelWidth - LABEL_CHROME;
   const lines = (text, charWidth) => Math.max(1, Math.ceil((text.length * charWidth) / content));
+  // Master data mode replaces the tagline rather than pushing it down, so the
+  // label only has to be as tall as the longer of the two - and it is that
+  // height in both modes, or toggling the mode would shove labels into each
+  // other on a map whose routes were laid before they moved.
+  const bottom = Math.max(
+    lines(app.tagline, TAGLINE_CHAR_WIDTH),
+    lines(masterLineFor(app.id), TAGLINE_CHAR_WIDTH),
+  );
   return (
     LABEL_CHROME / 2 +
     lines(app.name, NAME_CHAR_WIDTH) * NAME_LINE +
-    (app.status === 'planned' ? BADGE_LINE : 0) +
-    lines(app.tagline, TAGLINE_CHAR_WIDTH) * TAGLINE_LINE
+    badgesFor(app).length * BADGE_LINE +
+    bottom * TAGLINE_LINE
   );
 }
 
@@ -186,7 +189,11 @@ export function labelBox(app, station) {
   const width = Math.min(
     METRIC.labelWidth,
     LABEL_CHROME +
-      Math.max(app.name.length * NAME_CHAR_WIDTH, app.tagline.length * TAGLINE_CHAR_WIDTH),
+      Math.max(
+        app.name.length * NAME_CHAR_WIDTH,
+        app.tagline.length * TAGLINE_CHAR_WIDTH,
+        masterLineFor(app.id).length * TAGLINE_CHAR_WIDTH,
+      ),
   );
   const height = labelHeight(app);
   const left = station.x + METRIC.labelOffset;
@@ -208,4 +215,3 @@ export function totalWidth() {
   );
 }
 
-export { BACKBONE_ROW };

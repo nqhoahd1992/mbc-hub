@@ -1,4 +1,5 @@
-import { APPS } from '../data/apps.js';
+import { APPS, badgesFor } from '../data/apps.js';
+import { masterLineFor } from '../data/masters.js';
 import { FLOWS, FLOW_BY_ID } from '../data/flows.js';
 import { setState } from '../state.js';
 import { METRIC, laneX, totalHeight, totalWidth } from './layout.js';
@@ -48,7 +49,7 @@ export function renderMap(container, { rows, stations, links, interchanges }) {
 
   for (const row of rows) {
     const band = svg('rect', {
-      class: `map__band${row.isBackbone ? ' map__band--backbone' : ''}`,
+      class: `map__band${row.isOffCycle ? ' map__band--off-cycle' : ''}`,
       x: 0,
       y: row.y,
       width,
@@ -58,11 +59,11 @@ export function renderMap(container, { rows, stations, links, interchanges }) {
     bands.append(band);
 
     const header = document.createElement('div');
-    header.className = `row-header${row.isBackbone ? ' row-header--backbone' : ''}`;
+    header.className = `row-header${row.isOffCycle ? ' row-header--off-cycle' : ''}`;
     header.style.top = `${row.y}px`;
     header.style.height = `${row.height}px`;
 
-    if (row.isBackbone) {
+    if (row.isOffCycle) {
       header.innerHTML = `
         <span class="row-header__name">${row.label}</span>
         <span class="row-header__description">${row.description}</span>
@@ -191,17 +192,26 @@ export function renderMap(container, { rows, stations, links, interchanges }) {
 
     marks.append(group);
 
+    const masterLine = masterLineFor(app.id);
     const label = document.createElement('button');
     label.type = 'button';
-    label.className = `station-label station-label--${app.flow}`;
+    label.className = `station-label station-label--${app.flow}${
+      masterLine ? ' station-label--master' : ''
+    }`;
     label.dataset.appId = app.id;
     label.style.left = `${station.x + METRIC.labelOffset}px`;
     label.style.top = `${station.y}px`;
     label.style.maxWidth = `${METRIC.labelWidth}px`;
     label.innerHTML =
       `<span class="station-label__name">${app.name}</span>` +
-      (isPlanned ? '<span class="station-label__badge">planned</span>' : '') +
-      `<span class="station-label__tagline">${app.tagline}</span>`;
+      badgesFor(app)
+        .map(
+          (badge) =>
+            `<span class="station-label__badge station-label__badge--${badge}">${badge}</span>`,
+        )
+        .join('') +
+      `<span class="station-label__tagline">${app.tagline}</span>` +
+      (masterLine ? `<span class="station-label__master">${masterLine}</span>` : '');
 
     label.addEventListener('click', () => setState({ selected: app.id }));
     label.addEventListener('pointerenter', () => setState({ hovered: app.id }));

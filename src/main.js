@@ -110,11 +110,17 @@ function mountView() {
 mountView();
 wide.addEventListener('change', mountView);
 
+// Master data mode only swaps what the labels say, so it belongs on the body
+// rather than in either view: the map and the strip both read it from there.
+subscribe(({ masterMode }) =>
+  document.body.classList.toggle('is-master-mode', masterMode),
+);
+
 const search = createSearch(document.getElementById('search'), { onSelect: () => {} });
 
 createOverlay(hud, {
   onResetView: () => {
-    setState({ selected: null, flowFilter: null, stageFilter: null });
+    setState({ selected: null, flowFilter: null, stageFilter: null, masterMode: false });
     viewport.scrollTo({ top: 0, left: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
   },
   onOpenSearch: () => search.open(),
@@ -133,7 +139,7 @@ window.addEventListener('keydown', (event) => {
     return;
   }
   if (event.key === 'Escape') {
-    setState({ selected: null, flowFilter: null, stageFilter: null });
+    setState({ selected: null, flowFilter: null, stageFilter: null, masterMode: false });
     return;
   }
   if (event.key === 'Enter') {

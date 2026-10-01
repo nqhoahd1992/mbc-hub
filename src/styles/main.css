@@ -229,7 +229,7 @@ kbd {
   transition: fill 0.25s ease;
 }
 
-.map__band--backbone {
+.map__band--off-cycle {
   fill: rgba(var(--ui-surface-rgb), 0.3);
   stroke: rgba(var(--ui-border-rgb), 0.55);
   stroke-dasharray: 5 5;
@@ -279,11 +279,12 @@ kbd {
 
 .map__link--ghost .map__link-casing { stroke-width: 8; }
 
-/* The link that closes the cycle: thinner and softer, because it is feedback
-   travelling back rather than work moving forward. */
+/* The link that closes the cycle: thinner, because it is feedback travelling
+   back rather than work moving forward. Solid, though - a dash on this map
+   means the tool at one end does not exist yet, and both ends of this one are
+   live. Its arrowhead pointing up the page is what says it runs backwards. */
 .map__link--return .map__link-line {
   stroke-width: 3.5;
-  stroke-dasharray: 16 9;
 }
 
 .map__link-arrow { opacity: 0.95; }
@@ -345,7 +346,7 @@ kbd {
 .row-header.is-dim { opacity: 0.32; }
 
 .row-header__button,
-.row-header--backbone {
+.row-header--off-cycle {
   display: grid;
   grid-template-columns: 22px 1fr;
   grid-template-areas: 'order name' 'order description' 'order note';
@@ -361,7 +362,7 @@ kbd {
   cursor: pointer;
 }
 
-.row-header--backbone {
+.row-header--off-cycle {
   grid-template-columns: 1fr;
   grid-template-areas: 'name' 'description';
   cursor: default;
@@ -400,7 +401,7 @@ kbd {
   letter-spacing: -0.01em;
 }
 
-.row-header--backbone .row-header__name {
+.row-header--off-cycle .row-header__name {
   color: var(--ui-text-muted);
   font-size: 12px;
   letter-spacing: 0.14em;
@@ -495,16 +496,34 @@ kbd {
   line-height: 1.3;
 }
 
+/* Master data mode swaps the tagline for the record line in the same slot.
+   The label was measured for the taller of the two, so nothing moves. */
+.station-label__master {
+  display: none;
+  color: var(--ui-text);
+  font-size: 10.5px;
+  line-height: 1.3;
+}
+
+.is-master-mode .station-label--master .station-label__tagline { display: none; }
+.is-master-mode .station-label--master .station-label__master { display: block; }
+
 .station-label__badge {
   justify-self: start;
   margin: 2px 0;
   padding: 0 5px;
   border-radius: 4px;
-  background: rgba(var(--ui-planned-rgb), 0.3);
+  background: rgba(var(--ui-border-rgb), 0.5);
   color: var(--ui-text-muted);
   font-size: 9px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+/* Only "planned" carries the planned colour - an external app is already
+   built, and tinting its badge the same way would say it is not. */
+.station-label__badge--planned {
+  background: rgba(var(--ui-planned-rgb), 0.3);
 }
 
 /* ---------- Detail panel ---------- */
@@ -602,13 +621,19 @@ kbd {
   font-size: 11px;
 }
 
-.detail__planned {
+.detail__planned,
+.detail__origin {
   margin: 0;
   padding: 10px 12px;
   border: 1px dashed rgba(var(--ui-planned-rgb), 0.8);
   border-radius: var(--radius-sm);
   color: var(--ui-text-muted);
   font-size: 12.5px;
+}
+
+.detail__origin {
+  border-style: solid;
+  border-color: rgba(var(--ui-border-rgb), 0.8);
 }
 
 .detail__relations {
@@ -879,7 +904,7 @@ body.is-strip .map-wrapper { width: 100%; }
   line-height: 1.35;
 }
 
-.strip__section--backbone .strip__header {
+.strip__section--off-cycle .strip__header {
   display: grid;
   grid-template-areas: 'name' 'description';
   gap: 1px;
@@ -888,7 +913,7 @@ body.is-strip .map-wrapper { width: 100%; }
   border-top: 1px dashed rgba(var(--ui-border-rgb), 1);
 }
 
-.strip__section--backbone .strip__header-name {
+.strip__section--off-cycle .strip__header-name {
   color: var(--ui-text-muted);
   font-size: 12px;
   letter-spacing: 0.16em;
@@ -959,6 +984,17 @@ body.is-strip .map-wrapper { width: 100%; }
   line-height: 1.35;
 }
 
+.strip__master {
+  display: none;
+  grid-area: tagline;
+  color: var(--ui-text);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.is-master-mode .strip__station--master .strip__tagline { display: none; }
+.is-master-mode .strip__station--master .strip__master { display: block; }
+
 .strip__flow {
   grid-area: flow;
   padding: 2px 8px;
@@ -977,11 +1013,15 @@ body.is-strip .map-wrapper { width: 100%; }
   justify-self: end;
   padding: 0 5px;
   border-radius: 4px;
-  background: rgba(var(--ui-planned-rgb), 0.3);
+  background: rgba(var(--ui-border-rgb), 0.5);
   color: var(--ui-text-muted);
   font-size: 9px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.strip__badge--planned {
+  background: rgba(var(--ui-planned-rgb), 0.3);
 }
 
 .strip__empty {

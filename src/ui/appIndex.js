@@ -1,6 +1,7 @@
-import { APPS } from '../data/apps.js';
+import { APPS, badgesFor } from '../data/apps.js';
 import { FLOW_BY_ID } from '../data/flows.js';
-import { BACKBONE, STAGES } from '../data/stages.js';
+import { masterLineFor } from '../data/masters.js';
+import { ROWS } from '../data/stages.js';
 
 /**
  * The accessible, plain-text view of the registry.
@@ -9,7 +10,7 @@ import { BACKBONE, STAGES } from '../data/stages.js';
  * a plain list of links built from the same registry the map is built from.
  */
 export function renderAppIndex(container) {
-  const groups = [...STAGES.map((stage) => ({ ...stage })), { ...BACKBONE }];
+  const groups = ROWS;
   container.innerHTML = '';
 
   const heading = document.createElement('h1');
@@ -63,7 +64,9 @@ export function renderAppIndex(container) {
       const meta = document.createElement('p');
       meta.className = 'app-card__meta';
       meta.textContent = `${FLOW_BY_ID[app.flow].label} flow`;
-      if (app.status === 'planned') meta.textContent += ' - planned';
+      for (const badge of badgesFor(app)) meta.textContent += ` - ${badge}`;
+      const masterLine = masterLineFor(app.id);
+      if (masterLine) meta.textContent += ` - ${masterLine.toLowerCase()}`;
       item.append(meta);
 
       const summary = document.createElement('p');

@@ -1,4 +1,5 @@
 import { appTouchesFlow } from './data/flows.js';
+import { linkFeedsACopy, masterRoleFor } from './data/masters.js';
 
 /**
  * The one shared store. The HUD writes to it, the scene reads from it.
@@ -8,6 +9,7 @@ import { appTouchesFlow } from './data/flows.js';
 const state = {
   flowFilter: null, // flow id, or null for "all flows"
   stageFilter: null, // stage id, or null for "all stages"
+  masterMode: false, // show who owns which master record, and who holds a copy
   hovered: null, // app id
   selected: null, // app id
   introDone: false,
@@ -49,12 +51,13 @@ export function toggleFilter(key, value) {
 export function emphasisForApp(app) {
   const matchesFilters =
     (!state.flowFilter || appTouchesFlow(app, state.flowFilter)) &&
-    (!state.stageFilter || app.stage === state.stageFilter);
+    (!state.stageFilter || app.stage === state.stageFilter) &&
+    (!state.masterMode || masterRoleFor(app.id) !== null);
 
   if (!matchesFilters) return 'dim';
   if (state.selected === app.id || state.hovered === app.id) return 'focus';
   if (state.selected || state.hovered) return 'dim';
-  if (state.flowFilter || state.stageFilter) return 'focus';
+  if (state.flowFilter || state.stageFilter || state.masterMode) return 'focus';
   return 'normal';
 }
 
@@ -64,6 +67,9 @@ export function emphasisForLink(link, appById) {
   const to = appById[link.to];
   if (!from || !to) return 'dim';
 
+  // In master data mode the only line worth drawing is a record reaching its
+  // copy. Everything else is work moving, which is what the map says already.
+  if (state.masterMode && !linkFeedsACopy(link)) return 'dim';
   if (state.flowFilter && link.flow !== state.flowFilter) return 'dim';
   if (state.stageFilter && from.stage !== state.stageFilter && to.stage !== state.stageFilter) {
     return 'dim';
@@ -73,6 +79,6 @@ export function emphasisForLink(link, appById) {
   if (active) {
     return link.from === active || link.to === active ? 'focus' : 'dim';
   }
-  if (state.flowFilter || state.stageFilter) return 'focus';
+  if (state.flowFilter || state.stageFilter || state.masterMode) return 'focus';
   return 'normal';
 }
